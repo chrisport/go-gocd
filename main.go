@@ -3,7 +3,7 @@ package gocd
 import (
 	"time"
 
-	multierror "github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/go-multierror"
 	"github.com/parnurzeal/gorequest"
 )
 
@@ -18,6 +18,17 @@ func New(host, username, password string) Client {
 	client := DefaultClient{
 		Host:    host,
 		Request: gorequest.New().Timeout(60*time.Second).SetBasicAuth(username, password),
+	}
+	return &client
+}
+
+// New GoCD Client
+func NewTokenBased(host, apiToken string) Client {
+	client := DefaultClient{
+		Host:    host,
+		Request: gorequest.New().Timeout(60*time.Second).
+			Set("Authorization", "bearer "+apiToken).
+			SetDoNotClearSuperAgent(true),
 	}
 	return &client
 }

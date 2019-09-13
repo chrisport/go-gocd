@@ -11,6 +11,7 @@ import (
 
 const testUsername = "admin"
 const testPassword = "badger"
+const testAPIToken = "api_token"
 
 func DummyRequestBodyValidator(body string) error {
 	return nil
@@ -21,7 +22,8 @@ func newTestAPIClient(route string, handler func(http.ResponseWriter, *http.Requ
 	newTestServerHandler.HandleFunc(route, handler)
 	newAPIServer := httptest.NewServer(newTestServerHandler)
 
-	return New(newAPIServer.URL, testUsername, testPassword), newAPIServer
+	//return New(newAPIServer.URL, testUsername, testPassword), newAPIServer
+	return NewTokenBased(newAPIServer.URL, testAPIToken), newAPIServer
 }
 
 func serveFileAsJSON(t *testing.T, method string, filepath string, apiVersion int, requestBodyValidator func(string) error) func(http.ResponseWriter, *http.Request) {
@@ -31,7 +33,7 @@ func serveFileAsJSON(t *testing.T, method string, filepath string, apiVersion in
 			AcceptHeaderCheck(t, apiVersion, request)
 		}
 		// log.Println("Doing BasicAuthCheck")
-		BasicAuthCheck(t, request)
+		AuthCheck(t, request)
 		// log.Println("Doing RequestMethodCheck with " + method)
 		RequestMethodCheck(t, request, method)
 		// log.Println("Doing RequestBodyCheck")
@@ -50,7 +52,7 @@ func serveFileAsJSON(t *testing.T, method string, filepath string, apiVersion in
 
 func serveFileAsXML(t *testing.T, method, filepath string) func(http.ResponseWriter, *http.Request) {
 	return func(writer http.ResponseWriter, request *http.Request) {
-		BasicAuthCheck(t, request)
+		AuthCheck(t, request)
 		RequestMethodCheck(t, request, method)
 
 		contents, err := ioutil.ReadFile(filepath)
@@ -70,11 +72,15 @@ func AcceptHeaderCheck(t *testing.T, apiVersion int, request *http.Request) {
 	}
 }
 
-func BasicAuthCheck(t *testing.T, request *http.Request) {
+func AuthCheck(t *testing.T, request *http.Request) {
 	// BasicAuth check
-	username, password, _ := request.BasicAuth()
-	if username != testUsername && password != testPassword {
-		log.Fatalf("Invalid username / password combination")
+	username, password, ok := request.BasicAuth()
+	if ok {
+		if username != testUsername && password != testPassword {
+			log.Fatalf("Invalid username / password combination")
+		}
+	} else if request.Header.Get("Authorization") != "bearer "+testAPIToken {
+		log.Fatalf("Invalid api token, expected \"%s\" but was \"%s\"", "bearer "+testAPIToken, request.Header.Get("Authorization"))
 	}
 }
 

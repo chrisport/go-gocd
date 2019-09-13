@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	multierror "github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/go-multierror"
 )
 
 // EnvironmentConfig Object
